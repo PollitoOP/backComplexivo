@@ -1,0 +1,60 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: practicacomplexivodb
+    ports:
+      - 3308:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: basecomplexivo
+      MYSQL_USER: mysqluser
+      MYSQL_PASSWORD: secret
+    volumes:
+      - mysql-data:/var/lib/mysql
+    restart: always
+    networks:
+      - net-cloud
+
+  complexivoapi:
+    image: openjdk:17-jdk-alpine
+    container_name: complexivoapi
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/basecomplexivo?allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: mysqluser
+      SPRING_DATASOURCE_PASSWORD: secret
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: create-drop
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: debug
+      SPRING_PROFILES_ACTIVE: default
+    ports:
+      - "9096:8080"
+    volumes:
+      - /root/Complexivo/API:/usr/src/app
+    working_dir: /usr/src/app
+    command: ["java", "-jar", "ExamenComplexivo-examencomplexivo.jar"]
+    restart: always
+    networks:
+      - net-cloud
+
+  complexivoweb:
+    image: nginx:latest
+    container_name: complexivoweb
+    ports:
+      - "4200:80"
+    depends_on:
+      - complexivoapi
+    volumes:
+      - ./WEB/Spike/:/var/www/app/
+      - ./WEB/nginx/conf/nginx.conf:/etc/nginx/nginx.conf
+    restart: always
+    networks:
+      - net-cloud
+
+networks:
+  net-cloud:
+
+volumes:
+  mysql-data:
